@@ -18,7 +18,7 @@ export default function CaptionsBrowser({ flavors }: { flavors: Flavor[] }) {
     setError("");
     startTransition(async () => {
       const res = await getCaptionsForFlavor(Number(selectedFlavor));
-      if ("error" in res) setError(res.error);
+      if ("error" in res) setError(res.error ?? "Unknown error");
       else setCaptions(res.data);
     });
   };

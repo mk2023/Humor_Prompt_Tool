@@ -45,7 +45,7 @@ export default function TestPanel({ flavors }: { flavors: Flavor[] }) {
         selectedImageId || null,
         customImageUrl.trim() || null,
       );
-      if ("error" in res) setError(res.error);
+      if ("error" in res) setError(res.error ?? "Unknown error");
       else setResult(res.data);
     });
   };
