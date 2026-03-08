@@ -213,7 +213,7 @@ export default function AdminShell({
       }),
     );
     const res = await reorderSteps(flavorId, orderedIds);
-    if ("error" in res) showToast(res.error, "err");
+    if ("error" in res) showToast(res.error ?? "Unknown error", "err");
   };
 
   const navItems: { key: View; label: string; icon: string }[] = [
