@@ -217,9 +217,9 @@ export default function AdminShell({
   };
 
   const navItems: { key: View; label: string; icon: string }[] = [
-    { key: "flavors", label: "Flavors" },
-    { key: "test", label: "Test"},
-    { key: "captions", label: "Already-Made Captions"},
+    { key: "flavors", label: "Flavors", icon: "🧪" },
+    { key: "test", label: "Test", icon: "▶️" },
+    { key: "captions", label: "Already-Made Captions", icon: "💬" },
   ];
 
   return (
