@@ -105,7 +105,7 @@ export default function AdminShell({
     setCreating(true);
     const res = await createFlavor(newSlug.trim(), newDesc.trim());
     if ("error" in res) {
-      showToast(res.error, "err");
+      showToast(res.error ?? "Unknown error", "err");
     } else {
       setFlavors((prev) => [{ ...res.data, humor_flavor_steps: [] }, ...prev]);
       setNewSlug("");
@@ -119,7 +119,7 @@ export default function AdminShell({
   const handleUpdateFlavor = async (id: number, slug: string, desc: string) => {
     const res = await updateFlavor(id, slug, desc);
     if ("error" in res) {
-      showToast(res.error, "err");
+      showToast(res.error ?? "Unknown error", "err");
       return;
     }
     setFlavors((prev) =>
@@ -132,7 +132,7 @@ export default function AdminShell({
     if (!confirm("Delete this flavor and all its steps?")) return;
     const res = await deleteFlavor(id);
     if ("error" in res) {
-      showToast(res.error, "err");
+      showToast(res.error ?? "Unknown error", "err");
       return;
     }
     setFlavors((prev) => prev.filter((f) => f.id !== id));
@@ -150,7 +150,7 @@ export default function AdminShell({
       order_by: order,
     });
     if ("error" in res) {
-      showToast(res.error, "err");
+      showToast(res.error ?? "Unknown error", "err");
       return;
     }
     setFlavors((prev) =>
@@ -166,7 +166,7 @@ export default function AdminShell({
   const handleStepEdit = async (id: number, form: StepForm) => {
     const res = await updateStep(id, form);
     if ("error" in res) {
-      showToast(res.error, "err");
+      showToast(res.error ?? "Unknown error", "err");
       return;
     }
     setFlavors((prev) =>
@@ -184,7 +184,7 @@ export default function AdminShell({
     if (!confirm("Delete this step?")) return;
     const res = await deleteStep(id);
     if ("error" in res) {
-      showToast(res.error, "err");
+      showToast(res.error ?? "Unknown error", "err");
       return;
     }
     setFlavors((prev) =>
