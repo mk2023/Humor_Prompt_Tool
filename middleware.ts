@@ -20,12 +20,25 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  const { data } = await supabase.auth.getUser();
+  let data: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"] = { user: null };
+  try {
+    const result = await supabase.auth.getUser();
+    data = result.data;
+  } catch {
+    data = { user: null };
+  }
 
   if (!data?.user) {
     const url = req.nextUrl.clone();
     url.pathname = "/";
-    return NextResponse.redirect(url);
+    const redirectRes = NextResponse.redirect(url);
+    // Clear stale Supabase auth cookies that can trigger refresh token errors.
+    req.cookies.getAll().forEach((cookie) => {
+      if (cookie.name.startsWith("sb-")) {
+        redirectRes.cookies.delete(cookie.name);
+      }
+    });
+    return redirectRes;
   }
 
   return res;

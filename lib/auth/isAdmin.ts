@@ -13,19 +13,33 @@ function readBool(meta: Record<string, unknown> | null | undefined, keys: string
   return keys.some((k) => meta[k] === true);
 }
 
+const ADMIN_KEYS = [
+  "is_superadmin",
+  "isSuperAdmin",
+  "is_matrix_admin",
+  "isMatrixAdmin",
+];
+
+export function getAdminDebugInfo(profile: ProfileLike, user: UserLike) {
+  const profileSuperadmin = profile?.is_superadmin === true;
+  const profileMatrixAdmin = profile?.is_matrix_admin === true;
+  const appMetadataAdmin = readBool(user?.app_metadata, ADMIN_KEYS);
+  const userMetadataAdmin = readBool(user?.user_metadata, ADMIN_KEYS);
+
+  return {
+    profileFound: profile !== null,
+    profileSuperadmin,
+    profileMatrixAdmin,
+    appMetadataAdmin,
+    userMetadataAdmin,
+    isAdmin:
+      profileSuperadmin ||
+      profileMatrixAdmin ||
+      appMetadataAdmin ||
+      userMetadataAdmin,
+  };
+}
+
 export function isAdminUser(profile: ProfileLike, user: UserLike): boolean {
-  if (profile?.is_superadmin || profile?.is_matrix_admin) return true;
-
-  // Fallback for environments where profile row is missing or RLS blocks it.
-  const keys = [
-    "is_superadmin",
-    "isSuperAdmin",
-    "is_matrix_admin",
-    "isMatrixAdmin",
-  ];
-
-  return (
-    readBool(user?.app_metadata, keys) ||
-    readBool(user?.user_metadata, keys)
-  );
+  return getAdminDebugInfo(profile, user).isAdmin;
 }
