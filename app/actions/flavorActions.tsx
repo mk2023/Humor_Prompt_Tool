@@ -48,6 +48,116 @@ export async function deleteFlavor(id: number) {
   return { data: true };
 }
 
+const flavorWithStepsSelect = `
+  id,
+  slug,
+  description,
+  created_datetime_utc,
+  humor_flavor_steps (
+    id,
+    order_by,
+    description,
+    llm_system_prompt,
+    llm_user_prompt,
+    llm_temperature,
+    llm_input_type_id,
+    llm_output_type_id,
+    llm_model_id,
+    humor_flavor_step_type_id,
+    created_datetime_utc
+  )
+`;
+
+/** Copy a flavor and all of its steps under a new unique slug. */
+export async function duplicateFlavor(
+  sourceFlavorId: number,
+  newSlug: string,
+  description?: string,
+) {
+  const supabase = await createSupabaseClient();
+  const slug = newSlug.trim();
+  if (!slug) return { error: "Slug is required" };
+
+  const { data: slugConflict } = await supabase
+    .from("humor_flavors")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (slugConflict) return { error: "A flavor with this slug already exists" };
+
+  const { data: source, error: loadErr } = await supabase
+    .from("humor_flavors")
+    .select(
+      `description, humor_flavor_steps (
+        order_by,
+        description,
+        llm_system_prompt,
+        llm_user_prompt,
+        llm_temperature,
+        llm_input_type_id,
+        llm_output_type_id,
+        llm_model_id,
+        humor_flavor_step_type_id
+      )`,
+    )
+    .eq("id", sourceFlavorId)
+    .single();
+
+  if (loadErr) return { error: loadErr.message };
+  if (!source) return { error: "Source flavor not found" };
+
+  const rawSteps = source.humor_flavor_steps ?? [];
+  const sortedSteps = [...rawSteps].sort((a, b) => a.order_by - b.order_by);
+
+  const newDescription =
+    description !== undefined ? description.trim() : (source.description ?? "");
+
+  const { data: newFlavorRow, error: insertFlavorErr } = await supabase
+    .from("humor_flavors")
+    .insert({
+      slug,
+      description: newDescription,
+      created_datetime_utc: new Date().toISOString(),
+    })
+    .select("id, slug, description, created_datetime_utc")
+    .single();
+
+  if (insertFlavorErr) return { error: insertFlavorErr.message };
+
+  const newId = newFlavorRow.id;
+  const now = new Date().toISOString();
+
+  if (sortedSteps.length > 0) {
+    const stepRows = sortedSteps.map((s, i) => ({
+      humor_flavor_id: newId,
+      description: s.description,
+      llm_system_prompt: s.llm_system_prompt,
+      llm_user_prompt: s.llm_user_prompt,
+      llm_temperature: s.llm_temperature,
+      llm_input_type_id: s.llm_input_type_id,
+      llm_output_type_id: s.llm_output_type_id,
+      llm_model_id: s.llm_model_id,
+      humor_flavor_step_type_id: s.humor_flavor_step_type_id,
+      order_by: i + 1,
+      created_datetime_utc: now,
+    }));
+    const { error: stepsErr } = await supabase.from("humor_flavor_steps").insert(stepRows);
+    if (stepsErr) {
+      await supabase.from("humor_flavors").delete().eq("id", newId);
+      return { error: stepsErr.message };
+    }
+  }
+
+  const { data: fullFlavor, error: reloadErr } = await supabase
+    .from("humor_flavors")
+    .select(flavorWithStepsSelect)
+    .eq("id", newId)
+    .single();
+
+  if (reloadErr || !fullFlavor) return { error: reloadErr?.message ?? "Failed to load duplicated flavor" };
+  return { data: fullFlavor };
+}
+
 //Creating a new step:
 export async function createStep(payload: {
   humor_flavor_id: number;

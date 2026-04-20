@@ -6,6 +6,7 @@ import {
   createFlavor,
   updateFlavor,
   deleteFlavor,
+  duplicateFlavor,
   createStep,
   updateStep,
   deleteStep,
@@ -137,6 +138,21 @@ export default function AdminShell({
     }
     setFlavors((prev) => prev.filter((f) => f.id !== id));
     showToast("Flavor deleted.");
+  };
+
+  const handleDuplicateFlavor = async (
+    sourceId: number,
+    newSlug: string,
+    newDescription: string,
+  ): Promise<boolean> => {
+    const res = await duplicateFlavor(sourceId, newSlug, newDescription);
+    if ("error" in res) {
+      showToast(res.error ?? "Unknown error", "err");
+      return false;
+    }
+    setFlavors((prev) => [{ ...res.data, humor_flavor_steps: res.data.humor_flavor_steps ?? [] }, ...prev]);
+    showToast("Flavor duplicated!");
+    return true;
   };
 
   const handleStepCreate = async (
@@ -502,8 +518,10 @@ export default function AdminShell({
                   <FlavorPanel
                     key={flavor.id}
                     flavor={flavor}
+                    existingSlugs={flavors.map((f) => f.slug)}
                     onUpdate={handleUpdateFlavor}
                     onDelete={handleDeleteFlavor}
+                    onDuplicate={handleDuplicateFlavor}
                     onStepCreate={handleStepCreate}
                     onStepEdit={handleStepEdit}
                     onStepDelete={handleStepDelete}

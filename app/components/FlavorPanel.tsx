@@ -8,18 +8,37 @@ import Btn from "./Btn";
 import StepCard from "./StepCard";
 import StepFormFields from "./StepFormFields";
 
+function suggestDuplicateSlug(base: string, existing: string[]): string {
+  const taken = new Set(existing.map((s) => s.trim()));
+  let candidate = `${base}-copy`;
+  let n = 2;
+  while (taken.has(candidate)) {
+    candidate = `${base}-copy-${n}`;
+    n += 1;
+  }
+  return candidate;
+}
+
 export default function FlavorPanel({
   flavor,
+  existingSlugs,
   onUpdate,
   onDelete,
+  onDuplicate,
   onStepCreate,
   onStepEdit,
   onStepDelete,
   onStepReorder,
 }: {
   flavor: Flavor;
+  existingSlugs: string[];
   onUpdate: (id: number, slug: string, desc: string) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
+  onDuplicate: (
+    sourceId: number,
+    newSlug: string,
+    newDescription: string,
+  ) => Promise<boolean>;
   onStepCreate: (
     flavorId: number,
     form: StepForm,
@@ -36,6 +55,10 @@ export default function FlavorPanel({
   const [showAddStep, setShowAddStep] = useState(false);
   const [newStepForm, setNewStepForm] = useState<StepForm>(defaultStepForm());
   const [saving, setSaving] = useState(false);
+  const [showDuplicate, setShowDuplicate] = useState(false);
+  const [dupSlug, setDupSlug] = useState("");
+  const [dupDesc, setDupDesc] = useState("");
+  const [duplicating, setDuplicating] = useState(false);
 
   const steps = [...flavor.humor_flavor_steps].sort(
     (a, b) => a.order_by - b.order_by,
@@ -80,6 +103,21 @@ export default function FlavorPanel({
       reordered.map((s) => s.id),
     );
     setSaving(false);
+  };
+
+  const openDuplicate = () => {
+    setDupSlug(suggestDuplicateSlug(flavor.slug, existingSlugs));
+    setDupDesc(flavor.description || "");
+    setShowDuplicate(true);
+    setExpanded(true);
+  };
+
+  const handleDuplicate = async () => {
+    if (!dupSlug.trim()) return;
+    setDuplicating(true);
+    const ok = await onDuplicate(flavor.id, dupSlug.trim(), dupDesc.trim());
+    setDuplicating(false);
+    if (ok) setShowDuplicate(false);
   };
 
   return (
@@ -164,6 +202,9 @@ export default function FlavorPanel({
             >
               Edit
             </Btn>
+            <Btn variant="ghost" size="sm" onClick={openDuplicate}>
+              Duplicate
+            </Btn>
             <Btn
               variant="danger-ghost"
               size="sm"
@@ -183,6 +224,66 @@ export default function FlavorPanel({
             borderTop: "1.5px solid var(--border)",
           }}
         >
+          {/* Duplicate flavor */}
+          {showDuplicate && (
+            <div
+              style={{
+                marginTop: "1rem",
+                padding: "1rem",
+                background: "var(--step-bg)",
+                borderRadius: "var(--radius-md)",
+                border: "1.5px solid var(--border)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ fontWeight: 700 }}>Duplicate flavor</div>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
+                Creates a new flavor with the same {steps.length} step
+                {steps.length !== 1 ? "s" : ""}. Choose a unique slug.
+              </p>
+              <div>
+                <label style={labelStyle}>New slug *</label>
+                <input
+                  value={dupSlug}
+                  onChange={(e) => setDupSlug(e.target.value)}
+                  placeholder="e.g. dry-wit-variant"
+                  style={inputStyle}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Description</label>
+                <textarea
+                  value={dupDesc}
+                  onChange={(e) => setDupDesc(e.target.value)}
+                  rows={2}
+                  style={{ ...inputStyle, resize: "vertical" }}
+                />
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn
+                  variant="primary"
+                  size="sm"
+                  onClick={handleDuplicate}
+                  disabled={duplicating || !dupSlug.trim()}
+                >
+                  {duplicating ? "Duplicating…" : "Duplicate"}
+                </Btn>
+                <Btn
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDuplicate(false)}
+                  disabled={duplicating}
+                >
+                  Cancel
+                </Btn>
+              </div>
+            </div>
+          )}
+
           {/* Edit flavor form */}
           {editingFlavor && (
             <div
