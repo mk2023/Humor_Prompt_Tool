@@ -1,6 +1,7 @@
 import { createSupabaseClient } from "@/lib/supabase/supabaseServer";
 import { redirect } from "next/navigation";
 import AdminShell from "@/app/components/AdminShell";
+import { isAdminUser } from "@/lib/auth/isAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,9 @@ export default async function AdminPage() {
     .single();
 
   const isDev = process.env.NODE_ENV === "development";
-  if (!isDev && !profile?.is_superadmin && !profile?.is_matrix_admin) {
+  const isAdmin = isAdminUser(profile, userData.user);
+  const isSuperAdmin = profile?.is_superadmin ?? false;
+  if (!isDev && !isAdmin) {
     redirect("/?error=unauthorized");
   }
 
@@ -51,7 +54,7 @@ export default async function AdminPage() {
         name: profile?.full_name ?? userData.user.email ?? "Dev User",
         email: profile?.email ?? userData.user.email ?? "",
         avatarUrl: profile?.avatar_url ?? null,
-        isSuperAdmin: profile?.is_superadmin ?? false,
+        isSuperAdmin: isSuperAdmin,
         isMatrixAdmin: profile?.is_matrix_admin ?? false,
       }}
       initialFlavors={flavors ?? []}

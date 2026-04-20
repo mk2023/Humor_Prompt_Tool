@@ -1,6 +1,7 @@
 import { createSupabaseClient } from "@/lib/supabase/supabaseServer";
 import { redirect } from "next/navigation";
 import GoogleLoginButton from "@/app/components/GoogleLoginButton";
+import { isAdminUser } from "@/lib/auth/isAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
       .single();
 
     const isDev = process.env.NODE_ENV === "development";
-    if (isDev || profile?.is_superadmin || profile?.is_matrix_admin) {
+    if (isDev || isAdminUser(profile, data.user)) {
       redirect("/admin");
     }
   }
